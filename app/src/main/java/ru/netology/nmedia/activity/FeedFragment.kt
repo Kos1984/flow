@@ -64,20 +64,31 @@ class FeedFragment : Fragment() {
             }
         }
         viewModel.data.observe(viewLifecycleOwner) { state ->
-            adapter.submitList(state.posts)
+            val newPosts = state.posts.size > adapter.currentList.size
+            adapter.submitList(state.posts){
+                if (newPosts) {
+                    binding.list.smoothScrollToPosition(0)
+                }
+            }
             binding.emptyText.isVisible = state.empty
         }
         viewModel.newerCount.observe(viewLifecycleOwner) { state ->
-            // TODO: just log it, interaction must be in homework
-            println(state)
+            binding.updateButton.isVisible = true
+            println("$state newercount in view")
+
         }
 
         binding.swiperefresh.setOnRefreshListener {
             viewModel.refreshPosts()
+            binding.updateButton.isVisible = false
         }
 
         binding.fab.setOnClickListener {
             findNavController().navigate(R.id.action_feedFragment_to_newPostFragment)
+        }
+        binding.updateButton.setOnClickListener {
+            binding.updateButton.isVisible = false
+            viewModel.refreshPosts()
         }
 
         return binding.root

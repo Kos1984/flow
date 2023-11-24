@@ -37,17 +37,27 @@ class PostRepositoryImpl(private val dao: PostDao) : PostRepository {
         }
     }
 
-    override fun getNewerCount(id: Long): Flow<Int> = flow {
-        while (true) {
-            delay(10_000L)
-            val response = PostsApi.service.getNewer(id)
-            if (!response.isSuccessful) {
-                throw ApiError(response.code(), response.message())
-            }
+    override suspend fun showAllPosts() {
+        dao.updatePostsShow()
+    }
 
-            val body = response.body() ?: throw ApiError(response.code(), response.message())
-            dao.insert(body.toEntity())
-            emit(body.size)
+    override fun getNewerCount(id: Long): Flow<Int> = flow {
+
+            while (true) {
+                delay(10_000L)
+                val response = PostsApi.service.getNewer(id)
+                if (!response.isSuccessful) {
+                    throw ApiError(response.code(), response.message())
+                }
+                val body = response.body() ?: throw ApiError(response.code(), response.message())
+                val bodyToSave = body.map {
+                    it.copy(hideThisPost = true)
+                }
+                println(dao.count())
+                dao.insert(bodyToSave.toEntity())
+                if(bodyToSave.isNotEmpty()){
+                    emit(body.size)
+                }
         }
     }
         .catch { e -> throw AppError.from(e) }
@@ -75,5 +85,9 @@ class PostRepositoryImpl(private val dao: PostDao) : PostRepository {
 
     override suspend fun likeById(id: Long) {
         TODO("Not yet implemented")
+    }
+
+    override suspend fun getCount(): Long {
+       return dao.count().toLong()
     }
 }

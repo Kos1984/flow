@@ -3,6 +3,7 @@ package ru.netology.nmedia.viewmodel
 import android.app.Application
 import androidx.lifecycle.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOn
@@ -24,7 +25,8 @@ private val empty = Post(
     authorAvatar = "",
     likedByMe = false,
     likes = 0,
-    published = ""
+    published = "",
+    hideThisPost = true
 )
 
 class PostViewModel(application: Application) : AndroidViewModel(application) {
@@ -39,12 +41,14 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
         }
         .asLiveData(Dispatchers.Default) // преобразуем в LiveData получающую значения из корутины
 
+    var lastPostId = 0L
     private val _dataState = MutableLiveData<FeedModelState>()
     val dataState: LiveData<FeedModelState>
         get() = _dataState
 
     val newerCount: LiveData<Int> = data.switchMap {
-        repository.getNewerCount(it.posts.firstOrNull()?.id ?: 0L)
+        getId()
+        repository.getNewerCount(lastPostId)
             .catch { e -> e.printStackTrace() }
             .asLiveData(Dispatchers.Default)
     }
@@ -56,6 +60,9 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         loadPosts()
+    }
+    private fun getId() = viewModelScope.launch {
+        lastPostId = repository.getCount()
     }
 
     fun loadPosts() = viewModelScope.launch {
@@ -71,6 +78,7 @@ class PostViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshPosts() = viewModelScope.launch {
         try {
             _dataState.value = FeedModelState(refreshing = true)
+            repository.showAllPosts()
             repository.getAll()
             _dataState.value = FeedModelState()
         } catch (e: Exception) {
