@@ -9,7 +9,7 @@ import ru.netology.nmedia.entity.PostEntity
 
 @Dao
 interface PostDao {
-    @Query("SELECT * FROM PostEntity ORDER BY id DESC")
+    @Query("SELECT * FROM PostEntity WHERE hideThisPost == 0 ORDER BY id DESC ")
     fun getAll(): Flow<List<PostEntity>> // было LiveData стало Flow
 
     @Query("SELECT COUNT(*) == 0 FROM PostEntity")
@@ -26,4 +26,7 @@ interface PostDao {
 
     @Query("DELETE FROM PostEntity WHERE id = :id")
     suspend fun removeById(id: Long)
+
+    @Query("UPDATE PostEntity SET hideThisPost = 0")
+    suspend fun updatePostsShow()
 }
